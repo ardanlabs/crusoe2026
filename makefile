@@ -2,6 +2,16 @@
 SHELL_PATH = /bin/ash
 SHELL = $(if $(wildcard $(SHELL_PATH)),/bin/ash,/bin/bash)
 
+# ==============================================================================
+# Detect operating system and set the appropriate open command
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	OPEN_CMD := open
+else
+	OPEN_CMD := xdg-open
+endif
+
 tidy:
 	go mod tidy
 	go mod vendor
@@ -11,3 +21,9 @@ run-help:
 
 run:
 	go run api/services/sales/main.go | go run api/tooling/logfmt/main.go
+
+statsviz:
+	$(OPEN_CMD) http://localhost:3010/debug/statsviz
+
+pprof:
+	$(OPEN_CMD) http://localhost:3010/debug/pprof
