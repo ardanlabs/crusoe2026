@@ -4,11 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/ardanlabs/conf/v3"
+	"github.com/ardanlabs/service/app/sdk/debug"
 	"github.com/ardanlabs/service/foundation/logger"
 )
 
@@ -53,7 +57,7 @@ func run(ctx context.Context, log *logger.Logger) error {
 			IdleTimeout        time.Duration `conf:"default:120s"`
 			ShutdownTimeout    time.Duration `conf:"default:20s"`
 			APIHost            string        `conf:"default:0.0.0.0:3000"`
-			DebugHost          string        `conf:"default:0.0.0.0:3010"`
+			DebugHost          string        `conf:"default:0.0.0.0:3010,mask"`
 			CORSAllowedOrigins []string      `conf:"default:*"`
 		}
 	}{
@@ -70,6 +74,41 @@ func run(ctx context.Context, log *logger.Logger) error {
 		}
 		return fmt.Errorf("parsing config: %w", err)
 	}
+
+	// -------------------------------------------------------------------------
+	// App Starting
+
+	log.Info(ctx, "starting service", "version", cfg.Build)
+	defer log.Info(ctx, "shutdown complete")
+
+	out, err := conf.String(&cfg)
+	if err != nil {
+		return fmt.Errorf("generating config for output: %w", err)
+	}
+	log.Info(ctx, "startup", "config", out)
+
+	log.BuildInfo(ctx)
+
+	// -------------------------------------------------------------------------
+	// Start Debug Service
+
+	go func() {
+		log.Info(ctx, "startup", "status", "debug v1 router started", "host", cfg.Web.DebugHost)
+
+		if err := http.ListenAndServe(cfg.Web.DebugHost, debug.Mux()); err != nil {
+			log.Error(ctx, "shutdown", "status", "debug v1 router closed", "host", cfg.Web.DebugHost, "msg", err)
+		}
+	}()
+
+	// -------------------------------------------------------------------------
+	// Shutdown
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-shutdown
+
+	log.Info(ctx, "shutdown", "status", "shutdown started", "signal", sig)
+	defer log.Info(ctx, "shutdown", "status", "shutdown complete", "signal", sig)
 
 	return nil
 }
