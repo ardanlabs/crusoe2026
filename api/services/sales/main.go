@@ -16,6 +16,7 @@ import (
 	"github.com/ardanlabs/service/app/sdk/mid"
 	"github.com/ardanlabs/service/app/sdk/mux"
 	"github.com/ardanlabs/service/foundation/logger"
+	"github.com/ardanlabs/service/foundation/web"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 		},
 	}
 
-	log = logger.NewWithEvents(os.Stdout, logger.LevelInfo, "SALES", nil, events)
+	log = logger.NewWithEvents(os.Stdout, logger.LevelInfo, "SALES", web.GetTraceID, events)
 
 	// -------------------------------------------------------------------------
 
