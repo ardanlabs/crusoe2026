@@ -27,3 +27,6 @@ statsviz:
 
 pprof:
 	$(OPEN_CMD) http://localhost:3010/debug/pprof
+
+curl-test:
+	 curl -X GET http:/localhost:3000/test
