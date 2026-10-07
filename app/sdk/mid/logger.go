@@ -13,7 +13,7 @@ import (
 
 func Logger(log *logger.Logger) web.MidFunc {
 	m := func(handler web.HandlerFunc) web.HandlerFunc {
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) web.Encoder {
 			now := time.Now()
 
 			path := r.URL.Path
@@ -23,10 +23,12 @@ func Logger(log *logger.Logger) web.MidFunc {
 
 			log.Info(ctx, "request started", "method", r.Method, "path", path, "remoteaddr", r.RemoteAddr)
 
-			handler(ctx, w, r)
+			v := handler(ctx, w, r)
 
 			log.Info(ctx, "request completed", "method", r.Method, "path", path, "remoteaddr", r.RemoteAddr,
 				"since", time.Since(now).String())
+
+			return v
 		}
 
 		return h

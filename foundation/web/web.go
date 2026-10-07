@@ -7,7 +7,13 @@ import (
 	"uuid"
 )
 
-type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request)
+// Encoder defines behavior that can encode a data model and provide
+// the content type for that encoding.
+type Encoder interface {
+	Encode() (data []byte, contentType string, err error)
+}
+
+type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request) Encoder
 
 type App struct {
 	*http.ServeMux
@@ -29,7 +35,16 @@ func (a *App) HandleFunc(pattern string, handlerFunc HandlerFunc, mw ...MidFunc)
 	h := func(w http.ResponseWriter, r *http.Request) {
 		ctx := setTraceID(r.Context(), uuid.New().String())
 
-		handlerFunc(ctx, w, r)
+		data := handlerFunc(ctx, w, r)
+
+		bytes, ct, err := data.Encode()
+		if err != nil {
+			// DO SOMETHING
+			return
+		}
+
+		w.Header().Add("context-type", ct)
+		w.Write(bytes)
 	}
 
 	a.ServeMux.HandleFunc(pattern, h)
