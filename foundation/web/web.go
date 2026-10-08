@@ -3,6 +3,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"uuid"
 )
@@ -35,16 +36,12 @@ func (a *App) HandleFunc(pattern string, handlerFunc HandlerFunc, mw ...MidFunc)
 	h := func(w http.ResponseWriter, r *http.Request) {
 		ctx := setTraceID(r.Context(), uuid.New().String())
 
-		data := handlerFunc(ctx, w, r)
+		resp := handlerFunc(ctx, w, r)
 
-		bytes, ct, err := data.Encode()
-		if err != nil {
-			// DO SOMETHING
+		if err := Respond(ctx, w, resp); err != nil {
+			fmt.Println(ctx, "web-respond", "ERROR", err)
 			return
 		}
-
-		w.Header().Add("context-type", ct)
-		w.Write(bytes)
 	}
 
 	a.ServeMux.HandleFunc(pattern, h)
